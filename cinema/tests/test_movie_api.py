@@ -1,12 +1,9 @@
 import tempfile
 import os
-
 from PIL import Image
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
-from pyexpat.errors import messages
-
 from rest_framework.test import APIClient
 from rest_framework import status
 
@@ -170,17 +167,6 @@ class UnauthenticatedMovieApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_upload_image_forbidden(self):
-        movie = sample_movie()
-        url = image_upload_url(movie.id)
-        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
-            img = Image.new("RGB", (10, 10))
-            img.save(ntf, format="JPEG")
-            ntf.seek(0)
-            res = self.client.post(url, {"image": ntf}, format="multipart")
-
-        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
-
 
 class AuthenticatedMovieApiTests(TestCase):
     """Test authenticated movie API access"""
@@ -218,7 +204,6 @@ class AuthenticatedMovieApiTests(TestCase):
         }
 
         res = self.client.post(MOVIE_URL, payload)
-        print(res.data)
         self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_filtered_movies_by_actor_and_genre(self):
@@ -265,6 +250,17 @@ class AuthenticatedMovieApiTests(TestCase):
         self.assertIn(serializer1.data, res.data)
         self.assertNotIn(serializer2.data, res.data)
 
+    def test_upload_image_forbidden(self):
+        movie = sample_movie()
+        url = image_upload_url(movie.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(url, {"image": ntf}, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class AdminMovieApiTests(TestCase):
     """Test admin movie API access"""
@@ -292,7 +288,6 @@ class AdminMovieApiTests(TestCase):
         }
 
         res = self.client.post(MOVIE_URL, payload)
-        print(res.data)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
 
         movie = Movie.objects.get(id=res.data["id"])
