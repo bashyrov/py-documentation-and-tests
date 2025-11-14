@@ -170,6 +170,17 @@ class UnauthenticatedMovieApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
+    def test_upload_image_forbidden(self):
+        movie = sample_movie()
+        url = image_upload_url(movie.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as ntf:
+            img = Image.new("RGB", (10, 10))
+            img.save(ntf, format="JPEG")
+            ntf.seek(0)
+            res = self.client.post(url, {"image": ntf}, format="multipart")
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
 
 class AuthenticatedMovieApiTests(TestCase):
     """Test authenticated movie API access"""
@@ -235,6 +246,24 @@ class AuthenticatedMovieApiTests(TestCase):
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertIn(serializer1.data, res.data)
+
+    def test_filtered_movies_by_title(self):
+        movie1 = sample_movie(title="Unique Title Movie")
+        movie2 = sample_movie(title="Common Movie")
+
+        res = self.client.get(
+            MOVIE_URL,
+            {
+                "title": "Unique Title",
+            },
+        )
+
+        serializer1 = MovieListSerializer(movie1)
+        serializer2 = MovieListSerializer(movie2)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertIn(serializer1.data, res.data)
+        self.assertNotIn(serializer2.data, res.data)
 
 
 class AdminMovieApiTests(TestCase):
